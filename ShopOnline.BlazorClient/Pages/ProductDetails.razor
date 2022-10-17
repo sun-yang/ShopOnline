@@ -1,0 +1,53 @@
+﻿@page "/product/{id:int}"
+@inject IProductService ProductService
+@inject ICartService CartService
+
+@if(product == null)
+{
+    <span>@message</span>
+}
+else
+{
+    <div class="media">
+        <div class="media-img-wrapper mr-3">
+            <img class="media-img" src="@product.ImageUrl" alt="@product.Name">
+        </div>
+        <div class="image-body">
+            <h2 class="mb-1">@product.Name</h2>
+            <p>@product.Description</p>
+            <h4 class="price">A$@product.Price</h4>
+            <button class="btn btn-primary" @onclick="AddToCartAsync">
+                <i class="oi oi-cart"></i>&nbsp;&nbsp;&nbsp;Add to Cart
+            </button>
+        </div>
+    </div>
+
+}
+
+@code {
+    private Product? product = null;
+    private string message = string.Empty;
+
+    [Parameter]
+    public int id { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        message = "Loading...";
+        var result = await ProductService.GetProductAsync(id);
+        if (result.Success)
+            product = result.Data;
+        else
+            message = result.Message;
+    }
+
+    private async Task AddToCartAsync()
+    {
+        CartItem cart = new CartItem
+            {
+                ProductId = product.Id
+            };
+        await CartService.AddToCartAsync(cart);
+    }
+
+}

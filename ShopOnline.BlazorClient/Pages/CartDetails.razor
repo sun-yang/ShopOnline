@@ -1,0 +1,93 @@
+﻿@page "/cartdetails"
+@inject ICartService CartService
+@inject IAuthService AuthService
+@inject IOrderService OrderService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Shopping Cart</PageTitle>
+
+<h3>Shopping Cart</h3>
+
+@if(cartProducts == null || cartProducts.Count == 0)
+{
+    <span>@message</span>
+}
+else
+{
+    <div>
+        @foreach(var cartProduct in cartProducts)
+        {
+            <div class="container">
+                <div class="media-img-wrapper">
+                    <img src=@cartProduct.ProductImageUrl class="image">
+                </div>
+                <div class="name">
+                    <h5><a href="/product/@cartProduct.ProductId">@cartProduct.ProductName</a></h5>
+                    <input type="number" value="@cartProduct.Quantity"
+                    @onchange="@((ChangeEventArgs e) => UpdateQuantityAsync(e, cartProduct))"
+                    class="form-control input-quantity"
+                    min="1"/>
+                    <br/>
+                    <btn class="btn-delete" @onclick="@(() => RemoveProductFromCartAsync(cartProduct.ProductId))">Delete</btn>
+
+                </div>
+                <div class="cart-product-price">@cartProduct.ProductPrice*@cartProduct.Quantity</div>                
+             </div>
+        }
+        <div class="cart-product-price">
+            Total (@cartProducts.Count) : AU$@cartProducts.Sum(cartProduct => @cartProduct.ProductPrice*@cartProduct.Quantity)
+        </div>
+    </div>
+     @if (isAuthenticated)
+    {
+        <div>
+            <h5>Delivery Address</h5>
+            <AddressForm />
+        </div>
+    }
+     <button @onclick="PlaceOrderAsync" class="btn alert-success float-end mt-1">Checkout</button>
+}
+@code {
+    List<CartProductDTO> cartProducts = null;
+    string message = "Loading cart ...";
+    bool isAuthenticated = false;
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAuthenticated = await AuthService.IsUserAuthenticatedAsync();
+        await LoadCartAsync();
+    }
+
+    private async Task RemoveProductFromCartAsync(int productId)
+    {
+        await CartService.RemoveCartProductAsync(productId);
+        await LoadCartAsync();
+    }
+
+    private async Task LoadCartAsync()
+    {
+        await CartService.GetCartItemsCountAsync();
+        cartProducts = await CartService.GetCartProductsAsync();
+        if(cartProducts == null || cartProducts.Count == 0)
+        {
+            cartProducts = new List<CartProductDTO>();
+            message = "Your cart is empty. Please add products.";
+        }       
+    }
+
+    private async Task UpdateQuantityAsync(ChangeEventArgs e, CartProductDTO product)
+    {
+        product.Quantity = int.Parse(e.Value.ToString());
+        if (product.Quantity < 1)
+            product.Quantity = 1;
+        else
+            await CartService.UpdateQuantityAsync(product);
+    }
+
+     private async Task PlaceOrderAsync()
+    {
+        string url = await OrderService.PlaceOrderAsync();
+        NavigationManager.NavigateTo(url);
+    }
+}

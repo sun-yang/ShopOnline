@@ -1,0 +1,50 @@
+﻿
+@inject IProductService ProductService
+@implements IDisposable 
+
+@if (ProductService.Products == null || ProductService.Products.Count == 0)
+{
+    <span>Loading...</span>
+}
+else
+{
+    <div class="container">
+        @foreach (var product in ProductService.Products)
+        {
+            <div class="product">
+                <div>
+                    <a href="product/@product.Id">
+                        @if (!string.IsNullOrEmpty(product.ImageUrl))
+                        {
+                            <img src="@product.ImageUrl">
+                        }                       
+                    </a>
+                </div>
+                <h4><a href="product/@product.Id">@product.Name</a></h4>
+                <h5 class="price">
+                    AU$@product.Price
+                </h5>               
+            </div>
+        }
+    </div>
+    for (int i = 1; i <= ProductService.PageCount; i++)
+    {
+        <a  class="btn
+                 @(i == ProductService.CurrentPage ? "btn-info" : "btn-outline-info")
+                 page-selection"
+            href="/search/@ProductService.LastSearchString/@i">@i</a>
+    }
+}
+
+@code {
+
+    protected override void OnInitialized()
+    {
+        ProductService.ProductChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        ProductService.ProductChanged -= StateHasChanged;
+    }
+}
